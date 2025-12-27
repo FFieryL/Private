@@ -1,0 +1,8 @@
+{
+  "name": "&5PrivateASF",
+  "creator": "Fiery",
+  "description": "idk",
+  "entry": "index.js",
+  "version": "1.0.0",
+  "requires": ["Amaterasu", "PogData", "BloomCore", "requestV2"]
+}
