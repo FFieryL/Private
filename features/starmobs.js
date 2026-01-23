@@ -1,13 +1,17 @@
 import dungeonUtils from "../util/dungeonUtils";
 import Settings from "../config"
-import RenderLibV2J from "../util/render/render";
 import StarMob from "../util/starMobUtils";
-import { EntityArmorStand, EntityOtherPlayerMP, EntityWither } from "../util/utils";
+import { AxisAlignedBB, EntityArmorStand, EntityBat, EntityOtherPlayerMP, EntityWither, getColorOdin, RenderUtils, shouldHighlight } from "../util/utils";
 
 const starMobRegex = /§6✯ (?:§.)*(.+)§r.+§c❤$|^(Shadow Assassin)$/
 let starMobs = new Set()
 let trackedStands = new Set()
 let shadowAssassins = []
+let secretBats = []
+
+let validStarMobs = false
+let validBats = false
+let validSAs = false
 
 function validEntity(entity) {
     if (!entity) return false
@@ -20,85 +24,142 @@ const tickScanner = register("tick", () => {
         trackedStands.clear()
         starMobs.clear()
         shadowAssassins = []
+        secretBats = []
         return;
     }
     trackedStands.clear()
     starMobs.clear()
+    shadowAssassins = []
+    secretBats = []
     let SAsFound = []
     let armorStands = World.getAllEntitiesOfType(EntityArmorStand)
     let entities = World.getAllEntitiesOfType(EntityOtherPlayerMP)
 
-    for (let i = 0; i < armorStands.length; i++) {
-        let armorStand = armorStands[i]
-        if (armorStand.getName().includes("✯")) {
-            let nearbyMobs = World.getWorld().func_72839_b(armorStand.entity, armorStand.entity.func_174813_aQ().func_72317_d(0.0, -1.0, 0.0))
-            for (let mob of nearbyMobs) {
-                if (validEntity(mob)) {
-                    let match = armorStand.getName().match(starMobRegex)
-                    if (!match) continue;
+    if (Settings().starMobESP) {
+        for (let i = 0; i < armorStands.length; i++) {
+            let armorStand = armorStands[i]
+            if (armorStand.getName().includes("✯")) {
+                let nearbyMobs = World.getWorld().func_72839_b(armorStand.entity, armorStand.entity.func_174813_aQ().func_72317_d(0.0, -1.0, 0.0))
+                for (let mob of nearbyMobs) {
+                    if (validEntity(mob)) {
+                        let match = armorStand.getName().match(starMobRegex)
+                        if (!match) continue;
 
-                    let starMob = new StarMob(armorStand)
-                    let [_, mobName, sa] = match
+                        let starMob = new StarMob(armorStand)
+                        let [_, mobName, sa] = match
 
-                    let height = 2
-                    if (!sa) {
-                        if (mobName.includes("Fels")) {
-                            height = 3;
+                        let height = 2
+                        if (!sa) {
+                            if (mobName.includes("Fels")) {
+                                height = 3;
+                            }
+                            if (mobName.includes("Withermancer")) height = 2.5
                         }
-                        if (mobName.includes("Withermancer")) height = 2.5
-                    }
-                    else {
-                        height = 1.8
-                    }
-                    starMob.height = height
+                        else {
+                            height = 1.8
+                        }
+                        starMob.height = height
 
-                    trackedStands.add(armorStand)
-                    starMobs.add(starMob)
+                        trackedStands.add(armorStand)
+                        starMobs.add(starMob)
 
+                    }
                 }
             }
         }
-    }
-    for (let i = 0; i < entities.length; ++i) {
-        let entity = entities[i]
-        if (!entity.entity.func_82169_q(0)) continue
-        if (!entity.entity.func_70694_bm()) continue
-        let boots = new Item(entity.entity.func_82169_q(0))
-        let bootsNbt = boots?.getNBT()?.toString()
-        let heldItem = entity.entity.func_70694_bm().func_82833_r()
-        if (heldItem.includes("Silent Death") && bootsNbt.includes("color:6029470")) {
-            SAsFound.push(entity)
-        }
-    }
-    shadowAssassins = SAsFound;
+        if (trackedStands.size) validStarMobs = true
+        else validStarMobs = false
 
-    if (trackedStands.size || shadowAssassins.length) mobRenderer.register()
+        for (let i = 0; i < entities.length; ++i) {
+            let entity = entities[i]
+            if (!entity.entity.func_82169_q(0)) continue
+            if (!entity.entity.func_70694_bm()) continue
+            let boots = new Item(entity.entity.func_82169_q(0))
+            let bootsNbt = boots?.getNBT()?.toString()
+            let heldItem = entity.entity.func_70694_bm().func_82833_r()
+            if (heldItem.includes("Silent Death") && bootsNbt.includes("color:6029470")) {
+                SAsFound.push(entity)
+            }
+        }
+        shadowAssassins = SAsFound;
+        if (shadowAssassins.length) validSAs = true
+        else validSAs = false
+    }
+
+    if (Settings().batESP) {
+        let bats = World.getAllEntitiesOfType(EntityBat)
+        let batsFound = []
+        let hp = [100.0, 200.0, 220.0, 400.0, 800.0]
+        for (let i = 0; i < bats.length; ++i) {
+            let bat = bats[i]
+            if (hp.includes(bat.entity.func_110138_aP())) batsFound.push(bat)
+        }
+        secretBats = batsFound
+        if (secretBats.length) validBats = true
+        else validBats = false
+    }
+
+    if (trackedStands.size || shadowAssassins.length || secretBats.length) mobRenderer.register()
     else mobRenderer.unregister()
 }).unregister()
 
 const mobRenderer = register("renderWorld", () => {
-    const normalColor = Settings().starMobESPColor.map(v => v / 255);
-    const SAColor = Settings().starMobESPColorSA.map(v => v / 255);
-    const felColor = Settings().starMobESPColorFel.map(v => v / 255);
-    const highlighttype = Settings().starHighlightType == 1
+    const phase = Settings().starMobESPThruBlocks == 0
     const w = Settings().starHighlightSize;
-    for (let mob of starMobs) {
-        let x = mob.entity.getRenderX()
-        let y = mob.entity.getRenderY() - mob.height
-        let z = mob.entity.getRenderZ()
-        let h = mob.height
-        let color = normalColor;
-        if (mob.mobType === "fel") color = felColor;
-        RenderLibV2J.drawEspBoxV2(x, y, z, w, h, w, ...color, Settings().starMobESPThruBlocks);
-        if (highlighttype) RenderLibV2J.drawInnerEspBoxV2(x, y, z, w, h, w, color[0], color[1], color[2], color[3] / 5, Settings().starMobESPThruBlocks);
+    const highlighttype = Settings().starHighlightType == 1
+    if (validStarMobs) {
+        const normalColor = getColorOdin(Settings().starMobESPColor);
+        const felColor = getColorOdin(Settings().starMobESPColorFel);
+
+        for (let mob of starMobs) {
+            if (!mob.entity) continue;
+            let x = mob.entity.getRenderX()
+            let y = mob.entity.getRenderY() - mob.height
+            let z = mob.entity.getRenderZ()
+            let h = mob.height
+
+            let color = normalColor;
+            if (mob.mobType === "fel") color = felColor;
+
+            let newBox = new AxisAlignedBB(x - w / 2, y, z - w / 2, x + w / 2, y + h, z + w / 2)
+
+            if (shouldHighlight(Settings().starMobESPThruBlocks, mob.entity, w, h)) {
+                RenderUtils.INSTANCE.drawOutlinedAABB(newBox, color, 2, phase, true)
+                if (highlighttype) RenderUtils.INSTANCE.drawFilledAABB(newBox, color, phase)
+            }
+        }
     }
 
-    for (let i = 0; i < shadowAssassins.length; i++) {
-        let sa = shadowAssassins[i]
-        let [x, y, z] = [sa.getRenderX(), sa.getRenderY(), sa.getRenderZ()]
-        let h = 1.8
-        RenderLibV2J.drawEspBoxV2(x, y, z, w, h, w, ...SAColor, Settings().starMobESPThruBlocks);
-        if (highlighttype) RenderLibV2J.drawInnerEspBoxV2(x, y, z, w, h, w, SAColor[0], SAColor[1], SAColor[2], SAColor[3] / 5, Settings().starMobESPThruBlocks);
+    if (validSAs) {
+        const SAColor = getColorOdin(Settings().starMobESPColorSA)
+        for (let i = 0; i < shadowAssassins.length; i++) {
+            let sa = shadowAssassins[i]
+            let [x, y, z] = [sa.getRenderX(), sa.getRenderY(), sa.getRenderZ()]
+            let h = 1.8
+
+            let newBox = new AxisAlignedBB(x - w / 2, y, z - w / 2, x + w / 2, y + h, z + w / 2)
+
+            if (shouldHighlight(Settings().starMobESPThruBlocks, sa, w, h)) {
+                RenderUtils.INSTANCE.drawOutlinedAABB(newBox, SAColor, 2, phase, true)
+                if (highlighttype) RenderUtils.INSTANCE.drawFilledAABB(newBox, SAColor, phase)
+            }
+        }
+    }
+
+    if (validBats) {
+        let color = getColorOdin(Settings().batESPColor)
+        let w = 0.6
+        let h = 0.9
+        
+        for (let i = 0; i < secretBats.length; ++i) {
+            let bat = secretBats[i]
+            let [x, y, z] = [bat.getRenderX(), bat.getRenderY(), bat.getRenderZ()]
+            let newBox = new AxisAlignedBB(x - w / 2, y, z - w / 2, x + w / 2, y + h, z + w / 2)
+            if (shouldHighlight(Settings().batESPThruBlocks, bat, w, h)) {
+                if (Settings().batHighlightType) RenderUtils.INSTANCE.drawFilledAABB(newBox, color, phase)
+                RenderUtils.INSTANCE.drawOutlinedAABB(newBox, color, 2, phase, true)
+            }
+        }
     }
 }).unregister()
 
@@ -106,20 +167,42 @@ register("worldUnload", () => {
     starMobs.clear()
     trackedStands.clear()
     shadowAssassins = []
+    secretBats = []
+    validStarMobs = false
+    validBats = false
+    validSAs = false
 })
 
-if (Settings().starMobESP) {
-    tickScanner.register()
-}
+if (Settings().starMobESP) tickScanner.register()
+
+if (Settings().batESP) tickScanner.register()
 
 Settings().getConfig().registerListener("starMobESP", (prev, curr) => {
     if (curr) {
         tickScanner.register()
     } else {
-        tickScanner.unregister()
+        if (!Settings().batESP) {
+            tickScanner.unregister()
+            mobRenderer.unregister()
+        }
         starMobs.clear()
         trackedStands.clear()
         shadowAssassins = []
-        mobRenderer.unregister()
+        validSAs = false
+        validStarMobs = false
     }
 })
+
+Settings().getConfig().registerListener("batESP", (prev, curr) => {
+    if (curr) {
+        tickScanner.register()
+    } else {
+        if (!Settings().starMobESP) {
+            tickScanner.unregister()
+            mobRenderer.unregister()
+        }
+        secretBats = []
+        validBats = false
+    }
+})
+

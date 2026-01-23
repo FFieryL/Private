@@ -1,35 +1,42 @@
 import Settings from "../config"
 import { data, drawText, registerOverlay } from "../managers/guimanager"
-import { chat, S32PacketConfirmTransaction } from "../util/utils"
+import { chat, S03PacketTimeUpdate, S08PacketPlayerPosLook, S32PacketConfirmTransaction } from "../util/utils"
 registerOverlay("StormTimer", { text: () => "0.00", align: "center"})
 registerOverlay("P3Timer", { text: () => "0.00", align: "center", colors: false})
 registerOverlay("pyLBTimer", { text: () => "10.00", align: "center"})
 registerOverlay("StormDeathTime", { text: () => "36.20", align: "center"})
+registerOverlay("DeathTickTimer", { text: () => "0.00", align: "center", colors: false})
 
 let deathTime = 0;
-
+let goldorStarted = false
+let stormEnded = false
 
 const stormTickListener = register("packetReceived", (packet, event) => {
-    if (packet.func_148890_d() > -1) return;
+    if (packet.func_148888_e()) return;
     global.stormTicks++;
 }).setFilteredClass(S32PacketConfirmTransaction).unregister()
 
-const goldorTickListener = register("packetReceived", (packet, event) => {
-    if (packet.func_148890_d() > -1) return;
+register("packetReceived", (packet, event) => {
+    if (packet.func_148888_e()) return;
+    
+    if (stormEnded) {
+        if (--global.goldorTicks <= 0) stormEnded = false
+    }
+    if (!goldorStarted) return
+    
+    global.goldorTotal++
+
     if (Settings().goldorTimerType == 0) {
         if (global.goldorTicks > 60) {
-            global.goldorLoop = Math.floor(global.goldorTicks / 60)
-            global.goldorTicks = global.goldorTicks % 60
+            global.goldorTicks = 60 - (global.goldorTicks % 60)
         }
-        if (--global.goldorTicks == 0) {
+        if (--global.goldorTicks <= 0) {
             global.goldorTicks = 60
-            global.goldorLoop++
         }
     } else {
         global.goldorTicks++
-        global.goldorLoop = Math.floor(global.goldorTicks / 60)
     }
-}).setFilteredClass(S32PacketConfirmTransaction).unregister()
+}).setFilteredClass(S32PacketConfirmTransaction)
 
 const worldLoad = register("worldUnload", () => {
     resetStuffStorm()
@@ -50,6 +57,10 @@ register("chat", () => {
 register("chat", () => {
     resetStuffStorm()
     LBTimer.unregister()
+    if (!Settings().goldorStartTimer) return;
+    global.goldorTicks = 104
+    stormEnded = true
+    goldorStartOverlay.register()
 }).setCriteria("[BOSS] Storm: I should have known that I stood no chance.")
 
 
@@ -71,18 +82,21 @@ const overlay = register("renderOverlay", () => {
 
 function resetStuffGoldor() {
     global.goldorTicks = 0
-    global.goldorLoop = 0
-    goldorTickListener.unregister()
+    global.goldorTotal = 0
+    goldorStarted = false
     goldorOverlay.unregister()
 }
 
-const chatTrig2 = register("chat", () => {
+register("chat", () => {
+    stormEnded = false
+    if (!Settings().goldorTimer) return;
     if (Settings().goldorTimerType == 0) global.goldorTicks = 60;
     else global.goldorTicks = 0
-    global.goldorLoop = 0
-    goldorTickListener.register()
+    global.goldorTotal = 0
+    goldorStarted = true
     goldorOverlay.register();
-}).setCriteria("[BOSS] Goldor: Who dares trespass into my domain?").unregister()
+    goldorStartOverlay.unregister()
+}).setCriteria("[BOSS] Goldor: Who dares trespass into my domain?")
 
 const chatTrig3 = register("chat", () => {
     resetStuffGoldor()
@@ -97,6 +111,17 @@ const goldorOverlay = register("renderOverlay", () => {
         const deathtick = timeT % 60
         color = (deathtick < 20 ? "&a" : deathtick < 40 ? "&6" : "&c")
     }
+    global.goldorColor = color
+    let displayText = color + timeS.toFixed(2).toString()
+    if (Settings().goldorTimerTicks) displayText = color + timeT
+    drawText(displayText, data.P3Timer, true, "P3Timer")
+}).unregister()
+
+const goldorStartOverlay = register("renderOverlay", () => {
+    const timeT = global.goldorTicks
+    if (timeT <= 0) goldorStartOverlay.unregister()
+    const timeS = (timeT / 20)
+    let color = (timeT > 52 ? "&a" : timeT > 26 ? "&6" : "&c")
 
     const displayText = color + timeS.toFixed(2).toString()
     drawText(displayText, data.P3Timer, true, "P3Timer")
@@ -158,6 +183,72 @@ const stormDeathTime = register("renderOverlay", () => {
 
 
 
+
+// Death Tick Timer
+let deathTicks = -1;
+let spawnPos = null
+
+const serverTick = register("packetReceived", () => {
+    --deathTicks;
+    if (deathTicks <= 0) deathTicks = 40
+}).setFilteredClass(S32PacketConfirmTransaction).unregister();
+
+let S03;
+let S08 = register("packetReceived", () => {
+    S03 = register("packetReceived", (packet) => {
+        const totalWorldTime = packet.func_149366_c();
+        if (!totalWorldTime) return;
+
+        deathTicks = 40 - (totalWorldTime % 40);
+        serverTick.register();
+        if (Settings().deathTickTimer && spawnPos != null) deathTickOverlay.register()
+        return;
+    }).setFilteredClass(S03PacketTimeUpdate);
+
+    S08.unregister();
+    return;
+}).setFilteredClass(S08PacketPlayerPosLook);
+
+
+const spawnPosition = register('packetReceived', (packet) => {
+    const [px, py, pz] = [packet.func_148932_c(), packet.func_148928_d(), packet.func_148933_e()];
+    if (py !== 75.5 && py !== 76.5) return;
+
+    spawnPos = [px, py, pz];
+    spawnPosition.unregister();
+    return;
+}).setFilteredClass(S08PacketPlayerPosLook);
+
+register("chat", (message) => {
+    if (message == "[NPC] Mort: Here, I found this map when I first entered the dungeon." || message == "[NPC] Mort: Good luck.") {
+        spawnPos = null
+        serverTick.unregister()
+        deathTickOverlay.unregister()
+    }
+    if (!message.includes("Sending to server")) return;
+    deathTicks = -1;
+    spawnPos = null;
+    spawnPosition.register()
+}).setCriteria("${message}")
+
+const deathTickOverlay = register("renderOverlay", () => {
+    const timeT = deathTicks
+    const timeS = (timeT / 20).toFixed(2)
+    let color;
+    if(timeT > 20) color = "&a"
+    else if (timeT > 10) color = "&6"
+    else color = "&c";
+    const displayText = Settings().deathTickTimerType ? color + timeS.toString() : color + timeT.toString()
+    drawText(displayText, data.DeathTickTimer, true, "DeathTickTimer")
+}).unregister()
+
+register("worldUnload", () => {
+    deathTicks = -1;
+    serverTick.register();
+    deathTickOverlay.unregister()
+    S08.register();
+});
+
 if (Settings().pyLBTimer) {
     resetStuffStorm()
     worldLoad.register()
@@ -200,7 +291,6 @@ Settings().getConfig().registerListener("stormTimer", (prev, curr) => {
 
 if (Settings().goldorTimer) {
     resetStuffGoldor()
-    chatTrig2.register()
     chatTrig3.register()
     worldLoad.register()
 }
@@ -208,12 +298,10 @@ if (Settings().goldorTimer) {
 Settings().getConfig().registerListener("goldorTimer", (prev, curr) => {
     resetStuffGoldor()
     if(curr) {
-        chatTrig2.register()
         chatTrig3.register()
         worldLoad.register()
     }
     else {
-        chatTrig2.unregister()
         chatTrig3.unregister()
         if(Settings().stormTimer || Settings().pyLBTimer) return;
         worldLoad.unregister()

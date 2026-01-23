@@ -24,6 +24,16 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
         value: 0,
         shouldShow: data => data.espWither
     })
+    .addDropDown({
+        category: "Highlight",
+        subcategory: "Boss",
+        configName: "witherThruBlocks",
+        title: "Depth Mode",
+        description: "",
+        options: ["Normal", "RayTracing", "ESP"],
+        value: 0,
+        shouldShow: data => data.espWither
+    })
     .addSwitch({
         category: "Highlight",
         subcategory: "Boss",
@@ -33,20 +43,20 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
         value: false,
         shouldShow: data => data.espWither
     })
-    .addSwitch({
+    .addColorPicker({
         category: "Highlight",
         subcategory: "Boss",
-        configName: "witherThruBlocks",
-        title: "Show through walls (esp)",
+        configName: "witherESPColorBox",
+        title: "Wither Box Color",
         description: "",
-        value: true,
+        value: [244, 0, 25, 96],
         shouldShow: data => data.espWither
     })
     .addColorPicker({
         category: "Highlight",
         subcategory: "Boss",
-        configName: "witherESPColor",
-        title: "Wither Highlight Color",
+        configName: "witherESPColorFill",
+        title: "Wither Fill Color",
         description: "",
         value: [244, 0, 25, 96],
         shouldShow: data => data.espWither
@@ -63,12 +73,13 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
             chat(`&7Star Mobs Highlight ${newValue ? "&aEnabled" : "&cDisabled"}`)
         }
     })
-    .addSwitch({
+    .addDropDown({
         category: "Highlight",
         subcategory: "Star Mobs",
         configName: "starMobESPThruBlocks",
-        title: "Show Thru Walls (esp)",
-        description: "",
+        title: "Depth Mode",
+        description: "Method for rendering highlights through blocks",
+        options: ["Normal", "RayTracing", "ESP"],
         shouldShow: data => data.starMobESP
     })
     .addDropDown({
@@ -76,7 +87,7 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
         subcategory: "Star Mobs",
         configName: "starHighlightType",
         title: "Render Mode",
-        description: "",
+        description: "The visual shape of the highlight",
         options: ["Box", "Box Filled"],
         value: 0,
         shouldShow: data => data.starMobESP
@@ -119,6 +130,44 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
         shouldShow: data => data.starMobESP
     })
     .addSwitch({
+        category: "Highlight",
+        subcategory: "Bats",
+        configName: "batESP",
+        title: "Bat Highlight",
+        description: "idk its self explanatory... (highlight depth and type will follow starmobs)",
+        registerListener(previousValue, newValue) {
+            chat(`&7Bat Highlight ${newValue ? "&aEnabled" : "&cDisabled"}`)
+        }
+    })
+    .addColorPicker({
+        category: "Highlight",
+        subcategory: "Bats",
+        configName: "batESPColor",
+        title: "Bats Color",
+        description: "",
+        value: [255, 255, 255, 255],
+        shouldShow: data =>  data.batESP
+    })
+    .addDropDown({
+        category: "Highlight",
+        subcategory: "Bats",
+        configName: "batESPThruBlocks",
+        title: "Depth Mode",
+        description: "Method for rendering highlights through blocks",
+        options: ["Normal", "RayTracing", "ESP"],
+        shouldShow: data => data.batESP
+    })
+    .addDropDown({
+        category: "Highlight",
+        subcategory: "Bats",
+        configName: "batHighlightType",
+        title: "Render Mode",
+        description: "The visual shape of the highlight",
+        options: ["Box", "Box Filled"],
+        value: 0,
+        shouldShow: data => data.batESP
+    })
+    .addSwitch({
         category: "Pets",
         subcategory: "gui",
         configName: "CurrentPetGui",
@@ -151,9 +200,25 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
     .addSwitch({
         category: "Pets",
         subcategory: "Noti",
+        configName: "PetRuleNotiShort",
+        title: "Shorten Pet Rule Noti",
+        description: "Shortens Pet rule noti to just the pet",
+        shouldShow: data => data.PetRuleNoti
+    })
+    .addSwitch({
+        category: "Pets",
+        subcategory: "Noti",
         configName: "PetRuleSound",
         title: "Pet Rule Notifier Sound",
         description: "Plays a sound when you swap pets",
+        shouldShow: data => data.PetRuleNoti
+    })
+    .addSwitch({
+        category: "Pets",
+        subcategory: "Noti",
+        configName: "customPetRuleColor",
+        title: "Use custom color instead of rarity",
+        description: "When displaying, will use the color you set instead of the pets rarity",
         shouldShow: data => data.PetRuleNoti
     })
 
@@ -206,6 +271,14 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
         configName: "deathTickTimer",
         title: "Death Tick Timer",
         description: ""
+    })
+    .addSwitch({
+        category: "Dungeon",
+        subcategory: "Death Tick",
+        configName: "deathTickTimerType",
+        title: "Use seconds instead of ticks",
+        description: "",
+        shouldShow: data => data.deathTickTimer
     })
     .addSwitch({
         category: "Dungeon",
@@ -332,7 +405,26 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
         shouldShow: data => data.pyLBTimer
     })
 
-    
+    .addSwitch({
+        category: "Boss",
+        subcategory: "P3",
+        configName: "leapNoti",
+        title: "Leap Notifier",
+        description: "",
+        registerListener(previousValue, newValue) {
+            chat(`&7Leap Notifier ${newValue ? "&aEnabled" : "&cDisabled"}`)
+        }
+    })
+    .addSwitch({
+        category: "Boss",
+        subcategory: "P3",
+        configName: "goldorStartTimer",
+        title: "Goldor Start Timer",
+        description: "",
+        registerListener(previousValue, newValue) {
+            chat(`&7Goldor Timer ${newValue ? "&aEnabled" : "&cDisabled"}`)
+        }
+    })
     .addSwitch({
         category: "Boss",
         subcategory: "P3",
@@ -351,6 +443,14 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
         description: "",
         options: ["death tick", "full section"],
         value: 0,
+        shouldShow: data => data.goldorTimer
+    })
+    .addSwitch({
+        category: "Boss",
+        subcategory: "P3",
+        configName: "goldorTimerTicks",
+        title: "Show goldor timer in ticks instead",
+        description: "",
         shouldShow: data => data.goldorTimer
     })
     .addSwitch({
@@ -434,8 +534,8 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
         category: "Boss",
         subcategory: "P3",
         configName: "bonzoDP",
-        title: "Bonzo Double Proc Notifier (&cWIP&r)",
-        description: "Notifies when your bonzo mask may double proc",
+        title: "Bonzo Double Proc Notifier",
+        description: "Notifies when your bonzo mask may double proc (&cWIP Must have goldor timer on and SOMETIMES DOESN'T WORK&r)",
         registerListener(previousValue, newValue) {
             chat(`&7Bonzo Double Proc Notifier ${newValue ? "&aEnabled" : "&cDisabled"}`)
         }

@@ -3,7 +3,7 @@ import { getScoreboard, removeUnicode } from "../../BloomCore/utils/Utils";
 import { data, drawText, registerOverlay } from "../managers/guimanager";
 import dungeonUtils from "../util/dungeonUtils";
 import { chat } from "../util/utils";
-registerOverlay("DupeClass", { text: () => "DUPE CLASS DETECTED", align: "center", colors: true})
+registerOverlay("DupeClass", { text: () => "DUPE ARCHER DETECTED", align: "center", colors: true})
 
 let displayText = "DUPE CLASS DETECTED"
 

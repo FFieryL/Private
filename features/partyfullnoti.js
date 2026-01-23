@@ -8,22 +8,6 @@ let inAlarm = false
 let lastPartySize = 0;
 let tries = 0
 
-function inskyblock() {
-    if((Server.getIP() == "localhost" || !Server.getIP().includes("hypixel"))) return;
-    let isinskyblock = Scoreboard.getTitle().removeFormatting().toLowerCase().includes("skyblock")
-    if(!isinskyblock){
-        tries++
-        if(tries > 5) return;
-        setTimeout(() => {
-            inskyblock()
-        }, 5000);
-    }
-    else {
-        stepTrig.register()
-        return;
-    }
-}
-
 const alarm = register("renderOverlay", () => {
     World.playSound("random.orb", Settings().partyNotiVolume, 0);
     inAlarm = true
@@ -34,6 +18,8 @@ const alarm = register("renderOverlay", () => {
 }).unregister()
 
 const stepTrig = register("step", () => {
+    if (!World.isLoaded()) return;
+    if (!Server.getIP()?.includes("hypixel")) return stepTrig.unregister()
     if(counter > 5) {
         stepTrig.unregister()
         return;
@@ -42,7 +28,6 @@ const stepTrig = register("step", () => {
     if (!names) return;
     const area = names.find(tab => tab.includes("Area") || tab.includes("Cata"));
     if(!area || !area.includes("Dungeon Hub")) return counter++;
-
     counter = 0
     const partyline = names.find(line => line.includes("Party: "));
     if(!partyline) return;
@@ -51,12 +36,13 @@ const stepTrig = register("step", () => {
         notified = false;
         lastPartySize = 0;
         alarm.unregister()
+        return;
     }
 
     const match = partyline.match(/§r§b§lParty: §r§f\((\d+)\/5\)§r/)
     if(!match) return;
-    const partySize = parseInt(match[1])
 
+    const partySize = parseInt(match[1])
     if (partySize < 5) {
         notified = false;
         alarm.unregister()
@@ -68,7 +54,7 @@ const stepTrig = register("step", () => {
     }
 
     lastPartySize = partySize
-}).setDelay(5).unregister()
+}).setDelay(3).unregister()
 
 const chatTrig = register("chat", () => {
     if(inAlarm) return;
@@ -82,11 +68,11 @@ const chatTrig1 = register("chat", () => {
 }).setCriteria("The party was disbanded because all invites expired and the party was empty.").unregister()
 
 const worldLoadTrig = register("worldLoad", () => {
+    stepTrig.register()
     inAlarm = false
     counter = 0
     tries = 0
     alarm.unregister()
-    inskyblock()
 }).unregister()
 
 
@@ -95,7 +81,6 @@ if (Settings().partyFullNoti) {
     counter = 0
     tries = 0
     worldLoadTrig.register()
-    inskyblock()
 }
 
 if(Settings().partyDequeuedAlarm) {

@@ -33,7 +33,7 @@ const leverTrigger = register("tick", () => {
     const z = lookingAt.getZ();
 
     const isP3Lever = p3Levers.some(([lx, ly, lz]) => x === lx && y === ly && z === lz);
-    if (!isP3Lever) return chat("not a section lever");
+    if (!isP3Lever) return;
 
     const key = `${x}, ${y}, ${z}`;
     const lastClick = leverCooldowns.get(key) || 0;

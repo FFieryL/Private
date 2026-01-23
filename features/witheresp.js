@@ -1,7 +1,6 @@
-import RenderLibV2J from "../util/render/render"
 import Settings from "../config"
 import dungeonUtils from "../util/dungeonUtils"
-import { bossnames, EntityWither, Tracer } from "../util/utils"
+import { AxisAlignedBB, bossnames, EntityWither, getColorOdin, RenderUtils, shouldHighlight, Tracer } from "../util/utils"
 
 const worldTrig = register("worldUnload", () => {
     renderTrig.unregister()
@@ -16,17 +15,22 @@ const chatTrig = register("chat", (name, event) => {
     if (bossnames.some(boss => boss.includes(name))) renderTrig.register()
 }).setCriteria("[BOSS] ${name}: ${*}").unregister()
 
+
 const renderTrig = register("renderWorld", () => {
     const wither = World.getAllEntitiesOfType(EntityWither).find(entity => !entity.isInvisible() && entity.entity.func_82212_n() != 800)
     if (!wither) return
-
-    const rgb = [Settings().witherESPColor[0] / 255, Settings().witherESPColor[1] / 255, Settings().witherESPColor[2] / 255]
-    const alpha = Settings().witherESPColor[3] / 255
-    const height = 3.4
-    const width = 1
-    if(Settings().espWitherType == 1)RenderLibV2J.drawInnerEspBoxV2(wither.getRenderX(), wither.getRenderY(), wither.getRenderZ(), width, height, width, ...rgb, alpha, Settings().witherThruBlocks)
-    RenderLibV2J.drawEspBoxV2(wither.getRenderX(), wither.getRenderY(), wither.getRenderZ(), width, height, width, ...rgb, 1, Settings().witherThruBlocks)
-    if(Settings().witherTracer && dungeonUtils.currentPhase == 3 && dungeonUtils.currentStage == 5) Tracer(wither.getRenderX(), wither.getRenderY() + wither.getHeight() / 2, wither.getRenderZ(), Settings().witherESPColor[0], Settings().witherESPColor[1], Settings().witherESPColor[2], 2)
+    let [x, y, z] = [wither.getRenderX(), wither.getRenderY(), wither.getRenderZ()]
+    const colorBox = getColorOdin(Settings().witherESPColorBox)
+    const colorFill = getColorOdin(Settings().witherESPColorFill)
+    const h = 3.4
+    const w = 1
+    const phase = Settings().witherThruBlocks == 0
+    let newBox = new AxisAlignedBB(x - w / 2, y, z - w / 2, x + w / 2, y + h, z + w / 2)
+    if (shouldHighlight(Settings().witherThruBlocks, wither, w, h)) {
+        if(Settings().espWitherType == 1) RenderUtils.INSTANCE.drawFilledAABB(newBox, colorFill, phase)
+        RenderUtils.INSTANCE.drawOutlinedAABB(newBox, colorBox, 2, phase, true)
+    }
+    if(Settings().witherTracer && dungeonUtils.currentPhase == 3 && dungeonUtils.currentStage == 5) Tracer(x, y + wither.getHeight() / 2, z, Settings().witherESPColorBox[0], Settings().witherESPColorBox[1], Settings().witherESPColorBox[2], 2)
 }).unregister()
 
 if (Settings().espWither) {

@@ -16,6 +16,36 @@ export const S0FPacketSpawnMob = Java.type("net.minecraft.network.play.server.S0
 export const S1CPacketEntityMetadata = Java.type("net.minecraft.network.play.server.S1CPacketEntityMetadata")
 export const JavaString = Java.type("java.lang.String")
 export const MouseEvent = Java.type("net.minecraftforge.client.event.MouseEvent");
+export const RenderUtils = Java.type("me.odinmain.utils.render.RenderUtils");
+export const AxisAlignedBB = Java.type("net.minecraft.util.AxisAlignedBB");
+export const EntityBat = Java.type("net.minecraft.entity.passive.EntityBat")
+
+export function shouldHighlight(highlighttype, entity, width = 1, height = 2) {
+    if (!entity) return false;
+    if (highlighttype != 1) return true
+    let eyePos = Player.getPlayer().func_174824_e(0);
+    let vecs = []
+    for (let i = 0; i <= width; i += width) {
+        for (let j = 0; j <= height; j += height) {
+            for (let k = 0; k <= width; k += width) {
+                vecs.push(new Vec3(entity.getRenderX() - width / 2 + i, entity.getRenderY() + j, entity.getRenderZ() - width / 2 + k))
+            }
+        }
+    }
+
+    for (let v of vecs) {
+        if (World.getWorld().func_147447_a(eyePos, v, false, false, false) == null) return true
+    }
+    return false
+}
+
+export function getColorOdin(configColor) {
+    let r = configColor[0]
+    let g = configColor[1]
+    let b = configColor[2]
+    let a = configColor[3]
+    return new ColorUtils(javaColor.RGBtoHSB(r, g, b, null), 255 * a)
+}
 
 export function Tracer(x, y, z, r, g, b, lineWidth = 3.0, depth = false) {
     const color = new ColorUtils(javaColor.RGBtoHSB(r, g, b, null), 255 * 255);
@@ -43,7 +73,7 @@ export function isPlayerInBox(x1, x2, y1, y2, z1, z2) {
         z >= Math.min(z1, z2) && z <= Math.max(z1, z2));
 };
 
-export function getColorCodess(colorName) {
+export function getColorCodes(colorName) {
     const colorMap = {
         black: "&0",
         dark_blue: "&1",
@@ -66,7 +96,7 @@ export function getColorCodess(colorName) {
     let key = colorName.toLowerCase().replace(/\s+/g, "_");
     
     const aliases = {
-        purple: "light_purple",
+        purple: "dark_purple",
         magenta: "light_purple",
         pink: "light_purple",
         lime: "green",

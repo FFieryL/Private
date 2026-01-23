@@ -6,17 +6,26 @@ let currentPet = null;
 let overlayEndTime = 0;
 registerOverlay("PetRuleNoti", { text: () => "Phoenix &aequipped", align: "center" })
 
-const chatTrig = register("chat", (lvl, pet) => {
+const chatTrig = register("chat", (event) => {
     if(!Settings().PetRuleNoti) return;
+    const message = ChatLib.getChatMessage(event, true);
+
+    const match = message.match(/&cAutopet &eequipped your &7\[Lvl (\d+)\] &([0-9a-fk-or])(.+?)&e! &a&lVIEW RULE&r$/);
+    if (!match) return;
+
+    const colorCodes = match[2]; // e.g. "&d"
+    const petName = match[3].replace(/\s*✦/g, ""); // "Black Cat"
+    currentPet = petName;
+    if (!Settings().customPetRuleColor) currentPet = "&" + colorCodes + petName;
     overlay.register();
-    currentPet = pet;
     overlayEndTime = Date.now() + 1000;
     if(Settings().PetRuleSound) World.playSound("random.orb", 1, 1)
-}).setCriteria("Autopet equipped your [${lvl}] ${pet}! VIEW RULE").unregister()
+}).unregister()
 
 const overlay = register("renderOverlay", () => {
     if (currentPet && Date.now() < overlayEndTime) {
-        const displaytext = currentPet + " &aequipped";
+        let displaytext = currentPet;
+        if (!Settings().PetRuleNotiShort) displaytext += " &aequipped"
         drawText(displaytext, data.PetRuleNoti, true, "PetRuleNoti")
     } 
     else if (currentPet && Date.now() >= overlayEndTime) {

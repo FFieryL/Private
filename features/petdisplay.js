@@ -57,7 +57,7 @@ const chatTrig = register("chat", (event) => {
         const rarity = match[1];
         const pet = match[2];
         const level = parseInt(match[3])
-        if (currentPet.name == `&${rarity}${pet}`) currentPet.level = level;
+        if (currentPet?.name == `&${rarity}${pet}`) currentPet.level = level;
         if(Settings().CancelPetChats) {
             chat(`&${rarity}${pet} &5leveled up! &d${level - 1}&5->&d${level}`)
             cancel(event)
@@ -81,29 +81,33 @@ const chatTrig = register("chat", (event) => {
 
 }).unregister()
 
+
 const worldLoadTrig = register("worldLoad", () => {
-    if(Server.getIP() == "localhost" || !Server.getIP().includes("hypixel")) return;
-    setTimeout(() => {
-        if(!TabList) return;
-        const names = TabList.getNames();
-        if (!names) return;
-        const petIndex = names.findIndex(line => line.includes("Pet:"));
-        if (petIndex !== -1 && petIndex + 1 < names.length) {
-            const petLine = names[petIndex + 1]; 
-            match = petLine.match(tabpet)
-            if(match) {
-                const level = match[1];
-                const rarity = match[2];
-                const pet = match[3]
-                currentPet = {
-                    name: `&${rarity}${pet}`,
-                    level: level,
-                }
-                return;
-            }
-        }
-    }, 4000);
-}).unregister()
+    if (Server.getIP() == "localhost" || !Server.getIP().includes("hypixel")) return;
+
+    const checker = register("step", () => {
+        if (!World.isLoaded()) return;
+        if (!TabList) return;
+
+        const names = TabList.getNames()
+        if (!names || names.length == 0) return;
+
+        const petIndex = names.findIndex(line => line.includes("Pet:"))
+        if (petIndex == -1 || petIndex + 1 >= names.length) return checker.unregister();
+
+        const match = names[petIndex + 1].match(tabpet)
+        if (!match) return checker.unregister();
+
+        const [, level, rarity, pet] = match;
+
+        currentPet = {
+            name: `&${rarity}${pet}`,
+            level: level,
+        };
+
+        checker.unregister();
+    }).setDelay(1)
+})
 
 if (Settings().CurrentPetGui || Settings().CancelPetChats) {
     chatTrig.register();

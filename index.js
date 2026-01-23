@@ -13,8 +13,11 @@ import "./features/tickTimers"
 import "./features/leverTrigger"
 import "./features/dupeClass"
 import "./features/bonzoDP"
+import "./features/leapNotifier"
+import "./features/PAIRC"
 import { chat } from "./util/utils"
 import { OverlayEditor, activategui } from "./managers/guimanager"
+
 
 setTimeout(() => {
     chat("&dModule Loaded")
@@ -22,7 +25,7 @@ setTimeout(() => {
 
 register("command", () => {
     Settings().getConfig().openGui()
-}).setName("privateasf").setAliases(["pa", "pas", "pasf"])
+}).setName("privateasf").setAliases(["pa"])
 
 register("command", () => {
     setTimeout(() => {
