@@ -43,7 +43,7 @@ register("command", () => {
                 .map(item => item.path)
                 .filter(path => !BLACKLIST.includes(path));
             
-            let changeDetected = false; // Track if we actually changed anything
+            let state = { modified: false }; 
 
             Client.scheduleTask(0, () => {
                 let versionMsg = (version !== "Unknown") ? `files. Updating to version: &e${version}` : "files. Updating...";
@@ -54,30 +54,29 @@ register("command", () => {
                 const newContent = FileLib.getUrlContent(RAW_BASE + path);
                 
                 if (newContent && !newContent.startsWith("404")) {
-                    // Read the local file to compare
                     const oldContent = FileLib.read(MODULE_NAME, path);
 
-                    // Only write if the content is different
                     if (newContent !== oldContent) {
                         FileLib.write(MODULE_NAME, path, newContent, true);
-                        changeDetected = true;
+                        state.modified = true;
                     }
                     
-                    Client.scheduleTask(0, () => {
-                        let percent = Math.round(((index + 1) / files.length) * 100);
-                        let filled = Math.round(percent / 5); 
-                        let bar = "&a" + "■".repeat(filled) + "&7" + "■".repeat(20 - filled);
-                        ChatLib.actionBar(`&bUpdating: [${bar}&b] &f${percent}%`);
-                    });
+                    if (index % 3 === 0 || index === files.length - 1) {
+                        Client.scheduleTask(0, () => {
+                            let percent = Math.round(((index + 1) / files.length) * 100);
+                            let filled = Math.round(percent / 5); 
+                            let bar = "&a" + "■".repeat(filled) + "&7" + "■".repeat(20 - filled);
+                            ChatLib.actionBar(`&bUpdating: [${bar}&b] &f${percent}%`);
+                        });
+                    }
                 }
             });
 
-            // Finalize logic based on changeDetected
-            Client.scheduleTask(10, () => {
+            Client.scheduleTask(20, () => {
                 ChatLib.actionBar(""); 
                 
-                if (changeDetected) {
-                    chat("&aUpdate successful! &rReloading...");
+                if (state.modified) {
+                    chat("&aUpdate successful! &8Reloading...");
                     ChatLib.command("ct reload", true);
                 } else {
                     chat("&eNo changes detected. &7You are already on the latest version.");
