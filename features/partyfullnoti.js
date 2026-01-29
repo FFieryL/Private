@@ -105,7 +105,6 @@ Settings().getConfig().registerListener("partyFullNoti", (prev, curr) => {
         inAlarm = false
         counter = 0
         tries = 0
-        inskyblock()
         worldLoadTrig.register()
     }
     else {

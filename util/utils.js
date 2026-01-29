@@ -19,6 +19,11 @@ export const MouseEvent = Java.type("net.minecraftforge.client.event.MouseEvent"
 export const RenderUtils = Java.type("me.odinmain.utils.render.RenderUtils");
 export const AxisAlignedBB = Java.type("net.minecraft.util.AxisAlignedBB");
 export const EntityBat = Java.type("net.minecraft.entity.passive.EntityBat")
+export const S2DPacketOpenWindow = Java.type("net.minecraft.network.play.server.S2DPacketOpenWindow")
+export const S2FPacketSetSlot = Java.type("net.minecraft.network.play.server.S2FPacketSetSlot")
+export const S30PacketWindowItems = Java.type("net.minecraft.network.play.server.S30PacketWindowItems");
+export const S2EPacketCloseWindow = Java.type("net.minecraft.network.play.server.S2EPacketCloseWindow");
+
 
 export function shouldHighlight(highlighttype, entity, width = 1, height = 2) {
     if (!entity) return false;

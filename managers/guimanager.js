@@ -12,7 +12,9 @@ let resettime = 0
 export function registerOverlay(name, def) {
     overlayDefs[name] = {
         ...def, 
-        colors: def.colors !== false
+        colors: def.colors !== false,
+        w: def.w || null,
+        h: def.h || null
     }
 
     if (!data[name]) {  
@@ -107,7 +109,7 @@ const guistuff1 = register("guiMouseClick", (x, y, bn) => {
     if (bn === 0) { 
         activeOverlay = null;
         for (let key in overlayDefs) {
-            if (isMouseOver(x, y, overlayDefs[key].text(), data[key])) {
+            if (isMouseOver(x, y, overlayDefs[key].text(), data[key], key)) {
                 activeOverlay = key;
                 isDragging = true;
                 
@@ -158,7 +160,7 @@ const guistuff3 = register("scrolled", (x, y, dir) => {
 
     activeOverlay = null;
     for (let key in overlayDefs) {
-        if (isMouseOver(x, y, overlayDefs[key].text(), data[key])) {
+        if (isMouseOver(x, y, overlayDefs[key].text(), data[key], key)) {
             activeOverlay = key;
             break;
         }
@@ -201,19 +203,32 @@ export function drawText(text, info, center = true, overlayName = null) {
         .draw()
 }
 
-function isMouseOver(mx, my, text, info, center = true) { 
-    const w = Renderer.getStringWidth(ChatLib.removeFormatting(text)) * info.scale 
-    const h = 9 * info.scale // typical text height 
-    const x = center ? info.x - w / 2 : info.x 
-    const y = info.y 
-    return mx >= x && mx <= x + w && my >= y && my <= y + h 
-} 
+function isMouseOver(mx, my, text, info, overlayName) {
+    const def = overlayDefs[overlayName];
+    if (!def) return false;
+
+    const isCentered = def.align === "center";
     
-function drawBoxAround(text, info, center = true) { 
-    const w = Renderer.getStringWidth(ChatLib.removeFormatting(text)) * info.scale 
-    const h = 9 * info.scale 
-    const x = center ? info.x - w / 2 : info.x 
-    const y = info.y 
-    Renderer.drawRect(Renderer.color(255, 0, 255, 100), x - 2, y - 2, w + 4, h + 4) 
+    // Use custom width/height if they exist, otherwise calculate from text
+    const w = (def.w ? def.w : Renderer.getStringWidth(ChatLib.removeFormatting(text))) * info.scale;
+    const h = (def.h ? def.h : 9) * info.scale;
+
+    const x = isCentered ? info.x - (w / 2) : info.x;
+    const y = info.y;
+
+    return mx >= x - 2 && mx <= x + w + 2 && my >= y - 2 && my <= y + h + 2;
+}
+    
+function drawBoxAround(text, info, center = true) {
+    const overlayName = Object.keys(overlayDefs).find(key => overlayDefs[key].text() === text);
+    const def = overlayDefs[overlayName];
+
+    const w = (def && def.w ? def.w : Renderer.getStringWidth(ChatLib.removeFormatting(text))) * info.scale;
+    const h = (def && def.h ? def.h : 9) * info.scale;
+
+    const x = center ? info.x - w / 2 : info.x;
+    const y = info.y;
+
+    Renderer.drawRect(Renderer.color(255, 0, 255, 100), x - 2, y - 2, w + 4, h + 4);
 }
 

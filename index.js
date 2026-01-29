@@ -15,6 +15,7 @@ import "./features/dupeClass"
 import "./features/bonzoDP"
 import "./features/leapNotifier"
 import "./features/PAIRC"
+import "./features/armorEQGUI"
 
 import "./managers/updateManager"
 

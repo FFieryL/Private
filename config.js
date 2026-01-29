@@ -565,7 +565,40 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
             activategui()
         }
     })
-
+    .addSwitch({
+        category: "GUI",
+        subcategory: "invGUI",
+        configName: "invGUI",
+        title: "Armor and EQ gui",
+        description: ""
+    })
+    .addColorPicker({
+        category: "GUI",
+        subcategory: "invGUI",
+        configName: "itemBorder",
+        title: "Item Border Color",
+        description: "",
+        value: [80, 40, 100, 150],
+        shouldShow: data => data.invGUI
+    })
+    .addColorPicker({
+        category: "GUI",
+        subcategory: "invGUI",
+        configName: "invBgColor",
+        title: "GUI Background Color",
+        description: "",
+        value: [25, 10, 40, 130],
+        shouldShow: data => data.invGUI
+    })
+    .addColorPicker({
+        category: "GUI",
+        subcategory: "invGUI",
+        configName: "invBorderColor",
+        title: "GUI Border Color",
+        description: "",
+        value: [120, 40, 180, 200],
+        shouldShow: data => data.invGUI
+    })
 
 const setting = new Settings("PrivateASF", config, "data/ColorScheme.json")
 
