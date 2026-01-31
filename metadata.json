@@ -3,6 +3,6 @@
   "creator": "Fiery",
   "description": "idk",
   "entry": "index.js",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "requires": ["Amaterasu", "PogData", "BloomCore", "requestV2", "WebSocket"]
 }

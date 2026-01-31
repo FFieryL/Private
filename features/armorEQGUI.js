@@ -122,7 +122,7 @@ const EQstuff1 = register("packetReceived", () => {
 const EQstuff2 = register("packetReceived", (packet) => {
     const title = packet.func_179840_c().func_150254_d().removeFormatting();
     
-    if (title != "Your Equipment and Stats") equipmentWindowID = -1
+    if (title != "Your Equipment and Stats") return equipmentWindowID = -1;
     equipmentWindowID = packet.func_148901_c()
     EQstuff3.register()
     EQstuff4.register()
