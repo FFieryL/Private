@@ -136,18 +136,12 @@ const gardenTickChecker = register("tick", () => {
 
         pests = pestsFound
 
-        if (pests.length) {
-            pestEsp = true
-        } else {
-            pestEsp = false
-        }
+        if (pests.length) validPests = true
+        else validPests = false
     }
 
-    if (pestEsp) {
-        mobRenderer.register()
-    } else {
-        mobRenderer.unregister()
-    }
+    if (validPests) mobRenderer.register()
+    else mobRenderer.unregister()
 
 }).unregister();
 
@@ -248,7 +242,7 @@ register("worldUnload", () => {
     trackedStands.clear()
     shadowAssassins = []
     secretBats = []
-    pestsFound = []
+    pests = []
     validStarMobs = false
     validBats = false
     validSAs = false
