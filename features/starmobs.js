@@ -8,15 +8,23 @@ let starMobs = new Set()
 let trackedStands = new Set()
 let shadowAssassins = []
 let secretBats = []
+let pestsFound = []
 
 let validStarMobs = false
 let validBats = false
 let validSAs = false
+let validPests = false
 
 function validEntity(entity) {
     if (!entity) return false
     else if ((entity instanceof EntityArmorStand) || (entity instanceof EntityWither) || entity == Player.getPlayer()) return false;
     else return true;
+}
+
+function inGarden() {
+    let index = TabList?.getNames()?.findIndex(line => line?.removeFormatting()?.toLowerCase()?.includes("area: garden"))
+    if (index > -1) return true;
+    return false;
 }
 
 const tickScanner = register("tick", () => {
@@ -103,6 +111,46 @@ const tickScanner = register("tick", () => {
     else mobRenderer.unregister()
 }).unregister()
 
+
+register("chat", () => {
+    if (Settings().pestESP) gardenTickChecker.register();
+}).setCriteria(/.+! \d ൠ Pest have spawned in Plot - .+!/)
+
+const gardenTickChecker = register("tick", () => {
+
+    if (!Settings().pestESP || !inGarden()) return;
+
+    // Pests
+    if (Settings().pestESP) {
+        let pestsFound = []
+        let armorStands = World.getAllEntitiesOfType(EntityArmorStand)
+        for (let i = 0; i < armorStands.length; ++i) {
+            let armorStand = armorStands[i]
+            let helmet = armorStand.entity.func_82169_q(3)
+            if (!helmet) continue
+            let helmetName = ChatLib.removeFormatting(new Item(helmet).getName());
+            if (helmetName == "Head") {
+                pestsFound.push(armorStand)
+            }
+        }
+
+        pests = pestsFound
+
+        if (pests.length) {
+            pestEsp = true
+        } else {
+            pestEsp = false
+        }
+    }
+
+    if (pestEsp) {
+        mobRenderer.register()
+    } else {
+        mobRenderer.unregister()
+    }
+
+}).unregister();
+
 const mobRenderer = register("renderWorld", () => {
     const phase = Settings().starMobESPThruBlocks == 0
     const w = Settings().starHighlightSize;
@@ -161,6 +209,38 @@ const mobRenderer = register("renderWorld", () => {
             }
         }
     }
+
+    if (validPests) {
+        const pestOutlineWidth = 1
+        const pestTracerWidth = 1
+
+        let outlineColor = makeColor([244, 0, 25, 96])
+        let fillColor = makeColor([244, 0, 25, 96])
+        let tracerColor = makeColor([244, 0, 25, 96])
+
+        const playerY = Player.getRenderY() + (Player.isSneaking() ? 1.54 : 1.62)
+    
+        for (let i = 0; i < pests.length; ++i) {
+            let pest = pests[i]
+            let [x, y, z] = [pest.getRenderX(), pest.getRenderY() + 1.2, pest.getRenderZ()]
+            let w = 0.8
+            let h = 0.8
+            let newBox = new AxisAlignedBB(x - w / 2, y, z - w / 2, x + w / 2, y + h, z + w / 2)
+            if (shouldHighlight(pest, 1, 1)) {
+                RenderUtils.INSTANCE.drawFilledAABB(newBox, fillColor, phase)
+                RenderUtils.INSTANCE.drawOutlinedAABB(newBox, outlineColor, pestOutlineWidth, phase, true)
+            }
+
+            if (config.pestTracer && config.mode == 2) {
+                let vec1 = new Vec3(Player.getRenderX(), playerY, Player.getRenderZ())
+                let vec2 = new Vec3(x, y, z)
+                let points = new ArrayList()
+                points.add(vec1)
+                points.add(vec2)
+                RenderUtils.INSTANCE.drawLines(points, tracerColor, pestTracerWidth, true)
+            }
+        }
+    }
 }).unregister()
 
 register("worldUnload", () => {
@@ -168,9 +248,12 @@ register("worldUnload", () => {
     trackedStands.clear()
     shadowAssassins = []
     secretBats = []
+    pestsFound = []
     validStarMobs = false
     validBats = false
     validSAs = false
+    validPests = false
+    gardenTickChecker.unregister()
 })
 
 if (Settings().starMobESP) tickScanner.register()

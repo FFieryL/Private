@@ -168,6 +168,16 @@ const config = new DefaultConfig("PrivateASF", "data/settings.json")
         shouldShow: data => data.batESP
     })
     .addSwitch({
+        category: "Highlight",
+        subcategory: "Garden",
+        configName: "pestESP",
+        title: "Pest Highlight",
+        description: "Highlights pests in the garden",
+        registerListener(previousValue, newValue) {
+            chat(`&7Pest Highlight ${newValue ? "&aEnabled" : "&cDisabled"}`)
+        }
+    })
+    .addSwitch({
         category: "Pets",
         subcategory: "gui",
         configName: "CurrentPetGui",
