@@ -8,7 +8,7 @@ let starMobs = new Set()
 let trackedStands = new Set()
 let shadowAssassins = []
 let secretBats = []
-let pestsFound = []
+let pests = []
 
 let validStarMobs = false
 let validBats = false
