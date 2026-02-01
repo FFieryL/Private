@@ -1,7 +1,7 @@
 import dungeonUtils from "../util/dungeonUtils";
 import Settings from "../config"
 import StarMob from "../util/starMobUtils";
-import { AxisAlignedBB, EntityArmorStand, EntityBat, EntityOtherPlayerMP, EntityWither, getColorOdin, RenderUtils, shouldHighlight } from "../util/utils";
+import { AxisAlignedBB, EntityArmorStand, EntityBat, EntityOtherPlayerMP, EntityWither, getColorOdin, RenderUtils, shouldHighlight, Vec3 } from "../util/utils";
 
 const starMobRegex = /§6✯ (?:§.)*(.+)§r.+§c❤$|^(Shadow Assassin)$/
 let starMobs = new Set()
@@ -120,25 +120,22 @@ const gardenTickChecker = register("tick", () => {
 
     if (!Settings().pestESP || !inGarden()) return;
 
-    // Pests
-    if (Settings().pestESP) {
-        let pestsFound = []
-        let armorStands = World.getAllEntitiesOfType(EntityArmorStand)
-        for (let i = 0; i < armorStands.length; ++i) {
-            let armorStand = armorStands[i]
-            let helmet = armorStand.entity.func_82169_q(3)
-            if (!helmet) continue
-            let helmetName = ChatLib.removeFormatting(new Item(helmet).getName());
-            if (helmetName == "Head") {
-                pestsFound.push(armorStand)
-            }
+    let pestsFound = []
+    let armorStands = World.getAllEntitiesOfType(EntityArmorStand)
+    for (let i = 0; i < armorStands.length; ++i) {
+        let armorStand = armorStands[i]
+        let helmet = armorStand.entity.func_82169_q(3)
+        if (!helmet) continue
+        let helmetName = ChatLib.removeFormatting(new Item(helmet).getName());
+        if (helmetName == "Head") {
+            pestsFound.push(armorStand)
         }
-
-        pests = pestsFound
-
-        if (pests.length) validPests = true
-        else validPests = false
     }
+
+    pests = pestsFound
+
+    if (pests.length) validPests = true
+    else validPests = false
 
     if (validPests) mobRenderer.register()
     else mobRenderer.unregister()
@@ -205,12 +202,12 @@ const mobRenderer = register("renderWorld", () => {
     }
 
     if (validPests) {
-        const pestOutlineWidth = 1
-        const pestTracerWidth = 1
+        const pestOutlineWidth = 2
+        const pestTracerWidth = 3.5
 
-        let outlineColor = makeColor([244, 0, 25, 96])
-        let fillColor = makeColor([244, 0, 25, 96])
-        let tracerColor = makeColor([244, 0, 25, 96])
+        let outlineColor = getColorOdin([244, 0, 25, 96])
+        let fillColor = getColorOdin([244, 0, 25, 96])
+        let tracerColor = getColorOdin([244, 0, 25, 96])
 
         const playerY = Player.getRenderY() + (Player.isSneaking() ? 1.54 : 1.62)
     
@@ -225,14 +222,12 @@ const mobRenderer = register("renderWorld", () => {
                 RenderUtils.INSTANCE.drawOutlinedAABB(newBox, outlineColor, pestOutlineWidth, phase, true)
             }
 
-            if (config.pestTracer && config.mode == 2) {
-                let vec1 = new Vec3(Player.getRenderX(), playerY, Player.getRenderZ())
-                let vec2 = new Vec3(x, y, z)
-                let points = new ArrayList()
-                points.add(vec1)
-                points.add(vec2)
-                RenderUtils.INSTANCE.drawLines(points, tracerColor, pestTracerWidth, true)
-            }
+            let vec1 = new Vec3(Player.getRenderX(), playerY, Player.getRenderZ())
+            let vec2 = new Vec3(x, y, z)
+            let points = new ArrayList()
+            points.add(vec1)
+            points.add(vec2)
+            RenderUtils.INSTANCE.drawLines(points, tracerColor, pestTracerWidth, true)
         }
     }
 }).unregister()
