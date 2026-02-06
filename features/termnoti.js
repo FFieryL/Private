@@ -1,22 +1,22 @@
-import Settings from "../config"
+import c from "../config"
 import { data, drawText, registerOverlay } from "../managers/guimanager"
 import dungeonUtils from "../util/dungeonUtils"
-import { S32PacketConfirmTransaction } from "../util/utils"
+import { chat, CommonPingS2CPacket, SubtitleS2CPacket, TitleS2CPacket } from "../util/utils"
 let thingydone = null
 let thingycompleted = null
 let thingytotal = null
 let InP3 = false
 let completedat = 0
 let playername = null
-registerOverlay("TermNoti", { text: () => stuff(), align: "center", colors: true })
+registerOverlay("TermNoti", { text: () => stuff(), align: "center", colors: true, setting: () => c.TermNoti })
 
 function stuff() {
-    if(Settings().detailedMode) {
-        if(Settings().fullName) return "Fiery - &bTerminal &r&f(&d&l1&f/&d&l7&r&f)"
+    if(c.detailedMode) {
+        if(c.fullName) return "Fiery - &bTerminal &r&f(&d&l1&f/&d&l7&r&f)"
         else return "Fiery - &bTerm &r&f(&d&l1&f/&d&l7&r&f)"
     }
     else {
-        if(Settings().fullName) return "&bTerminal &r&f(&d&l1&f/&d&l7&r&f)"
+        if(c.fullName) return "&bTerminal &r&f(&d&l1&f/&d&l7&r&f)"
         else return "&bTerm &r&f(&d&l1&f/&d&l7&r&f)"
     }
 }
@@ -69,8 +69,8 @@ const corestuff = register("chat", () => {
 
 
 const gatestuff = register("chat", () => {
-    if(!Settings().GateNoti && !gatenotblown) return;
-    if(!Settings().KeepTitles) tickListener.register()
+    if(!c.GateNoti && !gatenotblown) return;
+    if(!c.KeepTitles) tickListener.register()
     completedat = 40
     thingydone = "&aGate Destroyed"
     thingytotal = null
@@ -80,7 +80,7 @@ const gatestuff = register("chat", () => {
 
 
 const gatestuff1 = register("chat", () => {
-    if(!Settings().KeepTitles) tickListener.register()
+    if(!c.KeepTitles) tickListener.register()
     completedat = 40
     thingydone = "&cGate: 5s"
     gatenotblown = true
@@ -93,14 +93,14 @@ let lastcompleted = 0
 
 
 const inp3 = register("chat", (name, action, object, completed, total, event) => {
-    if(!Settings().KeepTitles) tickListener.register()
+    if(!c.KeepTitles) tickListener.register()
     completedat = 40
     thingycompleted = completed
     thingytotal = total
     playername = name
     switch (object) {
         case "terminal":
-            thingydone = Settings().fullName ? "&bTerminal" : "&bTerm"
+            thingydone = c.fullName ? "&bTerminal" : "&bTerm"
             lastcompleted = completed
             break;
         case "lever":
@@ -110,7 +110,7 @@ const inp3 = register("chat", (name, action, object, completed, total, event) =>
         case "device":
             const playerclass = dungeonUtils.getPlayerClass(name)
             if(lastcompleted == completed) {
-                if(!Settings().instaNoti) {
+                if(!c.instaNoti) {
                     completedat = 0
                     thingydone = null
                     thingycompleted = null
@@ -131,7 +131,7 @@ const inp3 = register("chat", (name, action, object, completed, total, event) =>
                     break;
                 }
             }
-            thingydone = Settings().fullName ? "&5Device" : "&5Dev"
+            thingydone = c.fullName ? "&5Device" : "&5Dev"
             lastcompleted = completed
             break;
         default:
@@ -139,7 +139,9 @@ const inp3 = register("chat", (name, action, object, completed, total, event) =>
     }
 }).setCriteria(/(.+) (activated|completed) a (terminal|device|lever)! \((\d)\/(\d)\)/).unregister()
 
-const tickListener = register('packetReceived', () => {
+const tickListener = register('packetReceived', (packet, event) => {
+    if (!(packet instanceof CommonPingS2CPacket)) return;
+    if (packet.getParameter() === 0) return;
     completedat--;
     if(completedat > 0) return;
     thingydone = null
@@ -147,19 +149,19 @@ const tickListener = register('packetReceived', () => {
     thingytotal = null
     playername = null
     tickListener.unregister()
-}).setFilteredClass(S32PacketConfirmTransaction).unregister()
+}).setFilteredClass(CommonPingS2CPacket).unregister()
 
-const termoverlaystuff = register("renderOverlay", () => {
+const termoverlaystuff = register("renderOverlay", (cfx) => {
     if(!thingydone) return
     let displaytext
     if(thingycompleted && thingytotal) {
         displaytext = thingydone + " &r&f(&d&l" + thingycompleted + "&f/&d&l" + thingytotal + "&r&f)";
-        if(Settings().detailedMode) displaytext = `${playername} - ${displaytext}`
+        if(c.detailedMode) displaytext = `${playername} - ${displaytext}`
     }
     else{
         displaytext = thingydone
     }
-    drawText(displaytext, data.TermNoti, true, "TermNoti")
+    drawText(cfx, displaytext, data.TermNoti, true, "TermNoti")
 }).unregister();
 
 const blockedPhrases = [
@@ -171,16 +173,18 @@ const blockedPhrases = [
     "core entrance is opening!"
 ];
 
-const cancelTitlesTrig = register("renderTitle", (title, subtitle, event) => {
-    if(!InP3) return;
-    if (blockedPhrases.some(phrase => title.toLowerCase().includes(phrase) || subtitle.toLowerCase().includes(phrase))) cancel(event)
-}).unregister()
+const cancelTitlesTrig = register("packetReceived", (packet, event) => {
+    const text = packet?.text().toString().removeFormatting().toLowerCase();
+    if(!InP3 || !c.TermNoti) return;
+    if (!text) return;
+    if (blockedPhrases.some(phrase => text.includes(phrase.toLowerCase()))) cancel(event)
+}).setFilteredClasses([TitleS2CPacket, SubtitleS2CPacket]).unregister()
 
-if (Settings().CancelTitles) {
+if (c.CancelTitles && c.TermNoti) {
     cancelTitlesTrig.register();
 }
 
-if (Settings().TermNoti) {
+if (c.TermNoti) {
     chatTrig.register()
     if(dungeonUtils.currentPhase == 3) {
         registerTriggers(true)
@@ -189,12 +193,12 @@ if (Settings().TermNoti) {
     }
 }
 
-Settings().getConfig().registerListener("CancelTitles", (prev, curr) => {
-    if (curr) cancelTitlesTrig.register();
+c.registerListener("Disable standard term titles", (curr) => {
+    if (curr && c.TermNoti) cancelTitlesTrig.register();
     else cancelTitlesTrig.unregister();
 })
 
-Settings().getConfig().registerListener("TermNoti", (prev, curr) => {
+c.registerListener("Terminal Notifier", (curr) => {
     if (curr) {
         chatTrig.register()
         if(dungeonUtils.currentPhase == 3) {
